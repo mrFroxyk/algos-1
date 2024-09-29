@@ -237,7 +237,7 @@ class MusicPlayer(QWidget):
 
         self.current_playlist.next_track()
 
-    def change_position_dialogue(self) -> int:
+    def change_position_dialogue(self) -> None:
         """Окно смены позиции песни"""
         current_row = self.playlist_widget.currentRow()
         if current_row < 0:
@@ -257,26 +257,35 @@ class MusicPlayer(QWidget):
             return
 
         response = QInputDialog.getInt(
-            self, "Место композиции", f"Введите число от 1 до {len(self.current_playlist) - 1}",
-            min=1, max=len(self.current_playlist) - 1,
+            self, "Место композиции", f"Введите число от 1 до {len(self.current_playlist)}",
+            min=1, max=len(self.current_playlist),
         )
 
         if response[1] is False:
             return
 
-        number = response[0]
+        new_position = response[0] - 1  # Корректируем индекс для вставки (0-based индекс)
 
-        if current_row == number:
+        if current_row == new_position:
             return
 
-        self.change_position(number, current_row)
+        self.change_position(new_position, current_row)
 
-    def change_position(self, position, current_row):
+    def change_position(self, new_position: int, current_row: int) -> None:
         """Смена позиции песни"""
-        selected_track = self.find_song_by_id(current_row)
+        if current_row == new_position:
+            return  # Ничего не делать, если позиции одинаковы
 
-        self.current_playlist.insert(position, selected_track)
+        # Получаем трек по индексу
+        selected_track = self.current_playlist[current_row]
+
+        # import ipdb; ipdb.set_trace()
+        # Удаляем трек с текущей позиции
         self.current_playlist.remove(selected_track)
+
+        # Вставляем трек на новую позицию
+        self.current_playlist.insert(new_position, selected_track)
+
         self.update_playlist_widget()
 
 def get_playlist_object_by_name(name, playlist_objects):
