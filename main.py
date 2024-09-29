@@ -6,6 +6,7 @@ import pygame
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QApplication,
+    QComboBox,
     QDialog,
     QFileDialog,
     QInputDialog,
@@ -100,32 +101,32 @@ class PlaylistManager(QDialog):
         self.choose_playlist.emit(selected_playlist)
         self.close()
 
-
 class MusicPlayer(QWidget):
     """ Окно музыкального плеера """
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("Music Player")
-        self.setGeometry(100, 100, 400, 400)  # Увеличим высоту окна
-
+        self.setGeometry(100, 100, 400, 400)
         self.current_playlist: Playlist = None
         self.playlist_objects = []
-        self.playlist_manager = None
 
         pygame.mixer.init()
 
         self.selected_song_index = None
 
-        # Основной layout
         self.layout = QVBoxLayout()
 
-        # Список всех плейлистов
-        self.playlist_overview_widget = QListWidget()
-        self.playlist_overview_widget.itemClicked.connect(self.on_playlist_selected)
-        self.layout.addWidget(self.playlist_overview_widget)
+        # Кнопка добавления нового плейлиста (расположена над списком плейлистов)
+        self.add_playlist_button = QPushButton("Добавить плейлист")
+        self.add_playlist_button.clicked.connect(self.create_new_playlist_dialog)
+        self.layout.addWidget(self.add_playlist_button)
 
-        # Список композиций
+        # Окно для выбора плейлистов
+        self.playlist_combobox = QComboBox()
+        self.playlist_combobox.currentIndexChanged.connect(self.on_select_playlist_from_combobox)
+        self.layout.addWidget(self.playlist_combobox)
+
         self.playlist_widget = QListWidget()
         self.layout.addWidget(self.playlist_widget)
 
@@ -153,14 +154,46 @@ class MusicPlayer(QWidget):
         self.change_button.clicked.connect(self.change_position_dialogue)
         self.layout.addWidget(self.change_button)
 
-        self.open_dialog_button = QPushButton("Плейлисты")
-        self.open_dialog_button.clicked.connect(self.open_playlist_manager)
-        self.layout.addWidget(self.open_dialog_button)
-
         self.setLayout(self.layout)
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self.next_track_if_this_ended)
+
+    def create_new_playlist_dialog(self):
+        """ Открывает диалог для создания нового плейлиста """
+        name, ok = QInputDialog.getText(self, "Создать плейлист", "Введите название плейлиста:")
+
+        if ok and name:
+            if ',' in name:
+                QMessageBox.warning(self, "Ошибка", "Название плейлиста не должно содержать запятую.")
+                return
+
+            if get_playlist_object_by_name(name, self.playlist_objects):
+                QMessageBox.warning(self, "Ошибка", "Плейлист с таким названием уже существует.")
+                return
+
+            # Создаем новый плейлист и добавляем его в список
+            self.playlist_objects.append({
+                "name": name,
+                "playlist": Playlist()
+            })
+
+            self.playlist_combobox.addItem(name)
+
+    def on_select_playlist_from_combobox(self):
+        """ Хендлер для выбора плейлиста из комбобокса """
+        current_name = self.playlist_combobox.currentText()
+        playlist_object = get_playlist_object_by_name(current_name, self.playlist_objects)
+        if playlist_object:
+            self.current_playlist = playlist_object["playlist"]
+            self.update_playlist_widget()
+
+    def update_playlist_widget(self):
+        """ Обновляет виджет списка песен для текущего плейлиста """
+        self.playlist_widget.clear()
+        if self.current_playlist:
+            for node in self.current_playlist:
+                self.playlist_widget.addItem(os.path.basename(node.data.path))
 
     def open_playlist_manager(self):
         """ Открывает менеджер плейлистов """
