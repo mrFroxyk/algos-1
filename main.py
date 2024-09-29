@@ -107,7 +107,8 @@ class MusicPlayer(QWidget):
         super().__init__()
 
         self.setWindowTitle("Music Player")
-        self.setGeometry(100, 100, 400, 300)
+        self.setGeometry(100, 100, 400, 400)  # Увеличим высоту окна
+
         self.current_playlist: Playlist = None
         self.playlist_objects = []
         self.playlist_manager = None
@@ -116,8 +117,15 @@ class MusicPlayer(QWidget):
 
         self.selected_song_index = None
 
+        # Основной layout
         self.layout = QVBoxLayout()
 
+        # Список всех плейлистов
+        self.playlist_overview_widget = QListWidget()
+        self.playlist_overview_widget.itemClicked.connect(self.on_playlist_selected)
+        self.layout.addWidget(self.playlist_overview_widget)
+
+        # Список композиций
         self.playlist_widget = QListWidget()
         self.layout.addWidget(self.playlist_widget)
 
@@ -174,6 +182,7 @@ class MusicPlayer(QWidget):
         """ Хендлер для события удаления плейлиста """
         print(self.playlist_objects)
         self.playlist_objects.remove(get_playlist_object_by_name(name, self.playlist_objects))
+        self.update_playlist_overview()
 
     def on_create_playlist(self, name):
         """ Хендлер для события создания плейлиста """
@@ -182,6 +191,18 @@ class MusicPlayer(QWidget):
             "name": name,
             "playlist": Playlist()
         })
+        self.update_playlist_overview()
+
+    def update_playlist_overview(self):
+        """ Обновление списка всех плейлистов """
+        self.playlist_overview_widget.clear()
+        for playlist in self.playlist_objects:
+            self.playlist_overview_widget.addItem(playlist["name"])
+
+    def on_playlist_selected(self, item):
+        """ Хендлер для клика на плейлист в списке """
+        playlist_name = item.text()
+        self.on_select_playlist(playlist_name)
 
     def add_song(self):
         """ Добавление песен """
@@ -219,9 +240,8 @@ class MusicPlayer(QWidget):
         for idx, track in enumerate(self.current_playlist):
             if idx == sid:
                 return track
-        
-        return None
 
+        return None
 
     def play_song_by_id(self, sid):
         """ Проигрывание песни по id """
@@ -288,7 +308,7 @@ class MusicPlayer(QWidget):
 
         response = QInputDialog.getInt(
             self, f"Место композиции", f"Введите число от 1 до {len(self.current_playlist) - 1}",
-            min = 1, max = len(self.current_playlist) - 1
+            min=1, max=len(self.current_playlist) - 1
         )
 
         if response[1] is False:
@@ -300,7 +320,6 @@ class MusicPlayer(QWidget):
             return
 
         self.change_position(number, current_row)
-
 
     def change_position(self, position, current_row):
         """ Смена позиции песни """
@@ -316,13 +335,19 @@ class MusicPlayer(QWidget):
         for node in self.current_playlist:
             self.playlist_widget.addItem(os.path.basename(node.data.path))
 
+
 def get_playlist_object_by_name(name: str, playlist_objects: list):
     """ Получение плейлиста-объекта по названию """
+    # import ipdb; ipdb.set_trace()
     for playlist_object in playlist_objects:
-        if playlist_object["name"] == name[:name.index(',')]:
-            return playlist_object
+        try:
+            if playlist_object["name"] == name or playlist_object["name"] == name[:name.index(',')]:
+                return playlist_object
+        except:
+            ...
 
     return None
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
