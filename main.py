@@ -271,22 +271,19 @@ class MusicPlayer(QWidget):
 
         self.change_position(new_position, current_row)
 
-    def change_position(self, new_position: int, current_row: int) -> None:
-        """Смена позиции песни"""
-        if current_row == new_position:
-            return  # Ничего не делать, если позиции одинаковы
+    def change_position(self, position, current_row):
+        """Смена позиции песни."""
+        selected_track = self.find_song_by_id(current_row)
+        prev_track = self.find_song_by_id(position - 1)
 
-        # Получаем трек по индексу
-        selected_track = self.current_playlist[current_row]
+        if current_row < position:
+            prev_track = self.find_song_by_id(position)
 
-        # import ipdb; ipdb.set_trace()
-        # Удаляем трек с текущей позиции
-        self.current_playlist.remove(selected_track)
-
-        # Вставляем трек на новую позицию
-        self.current_playlist.insert(new_position, selected_track)
-
-        self.update_playlist_widget()
+        self.remove_song()
+        self.current_playlist.insert(prev_track.data, selected_track.data)
+        self.playlist_widget.clear()
+        for node in self.current_playlist:
+            self.playlist_widget.addItem(os.path.basename(node.data.path))
 
 def get_playlist_object_by_name(name, playlist_objects):
     for playlist in playlist_objects:
