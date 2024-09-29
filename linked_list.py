@@ -1,9 +1,10 @@
-""" Модуль кольцевого двусвязного списка """
+"""Модуль кольцевого двусвязного списка"""
 from typing import Self
 
 
 class LinkedListItem:
     """Узел связного списка"""
+
     def __init__(self, data=None):
         self.data = data
         self._next_node = None
@@ -39,6 +40,7 @@ class LinkedListItem:
 
 class LinkedList:
     """Связный список"""
+
     def __init__(self, first_item: LinkedListItem):
         self.first_item = first_item
 
@@ -104,7 +106,7 @@ class LinkedList:
         """Вставка справа"""
         new = LinkedListItem(item)
         cur = self.first_item
-        for _ in range(0, len(self)):
+        for _ in range(len(self)):
             if cur.data == previous_data:
                 new.next_item = cur.next_item
                 new.previous_item = cur
@@ -149,7 +151,7 @@ class LinkedList:
         if index < 0 or index >= len(self):
             raise IndexError("Linked List index out of range")
         cur = self.first_item
-        for _ in range(0, index):
+        for _ in range(index):
             cur = cur.next_item
 
         return cur.data

@@ -1,4 +1,4 @@
-""" Модуль интерфейса """
+"""Модуль интерфейса"""
 import os
 import sys
 
@@ -7,10 +7,8 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
-    QDialog,
     QFileDialog,
     QInputDialog,
-    QLineEdit,
     QListWidget,
     QMessageBox,
     QPushButton,
@@ -22,93 +20,15 @@ from composition import Composition
 from playlist import Playlist
 
 
-class PlaylistManager(QDialog):
-    """ Окно менеджера плейлистов"""
-    add_playlist = QtCore.pyqtSignal(str)
-    remove_playlist = QtCore.pyqtSignal(str)
-    choose_playlist = QtCore.pyqtSignal(str)
-
-    def __init__(self, playlist_objects: list[Playlist]):
-        super().__init__()
-        self.playlist_objects = playlist_objects
-        self.setWindowTitle("Playlist Manager")
-        self.setGeometry(100, 100, 300, 300)
-
-        self.playlist_list = QListWidget()
-        self.playlist_name_input = QLineEdit()
-        self.playlist_name_input.setPlaceholderText("Введите название плейлиста")
-
-        self.create_button = QPushButton("Создать плейлист")
-        self.delete_button = QPushButton("Удалить плейлист")
-        self.select_button = QPushButton("Выбрать плейлист")
-
-        self.create_button.clicked.connect(self.create_playlist)
-        self.delete_button.clicked.connect(self.delete_playlist)
-        self.select_button.clicked.connect(self.select_playlist)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.playlist_list)
-        layout.addWidget(self.playlist_name_input)
-        layout.addWidget(self.create_button)
-        layout.addWidget(self.delete_button)
-        layout.addWidget(self.select_button)
-
-        self.setLayout(layout)
-
-        if len(self.playlist_objects) != 0:
-            for playlist_object in self.playlist_objects:
-                self.playlist_list.addItem(f"{playlist_object["name"]}, композиций: {len(playlist_object["playlist"])}")
-
-    def create_playlist(self):
-        """ Создание плейлиста """
-        name = self.playlist_name_input.text()
-        if name:
-            if ',' in name:
-                QMessageBox.warning(self, "Ошибка", "Название плейлиста не должно содержать запятую.")
-                return
-
-            display_name = f"{name}, композиций: {0}"
-
-            if get_playlist_object_by_name(display_name, self.playlist_objects):
-                QMessageBox.warning(self, "Ошибка", "Плейлист с таким названием уже существует")
-                return
-
-            self.playlist_list.addItem(display_name)
-            self.playlist_name_input.clear()
-            self.add_playlist.emit(name)
-        else:
-            QMessageBox.warning(self, "Ошибка", "Вы не ввели название плейлиста")
-
-    def delete_playlist(self):
-        """ Удаление плейлиста """
-        selected_items = self.playlist_list.selectedItems()
-        if not selected_items:
-            QMessageBox.warning(self, "Ошибка", "Плейлист не выбран")
-            return
-
-        for item in selected_items:
-            self.playlist_list.takeItem(self.playlist_list.row(item))
-            self.remove_playlist.emit(item.text())
-
-    def select_playlist(self):
-        """ Выбор плейлиста"""
-        selected_items = self.playlist_list.selectedItems()
-        if not selected_items:
-            QMessageBox.warning(self, "Ошибка", "Плейлист не выбран")
-            return
-
-        selected_playlist = selected_items[0].text()
-        self.choose_playlist.emit(selected_playlist)
-        self.close()
-
 class MusicPlayer(QWidget):
-    """ Окно музыкального плеера """
+    """Окно музыкального плеера"""
+
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("Music Player")
         self.setGeometry(100, 100, 400, 400)
-        self.current_playlist: Playlist = None
+        self.current_playlist = None
         self.playlist_objects = []
 
         pygame.mixer.init()
@@ -117,12 +37,14 @@ class MusicPlayer(QWidget):
 
         self.layout = QVBoxLayout()
 
-        # Кнопка добавления нового плейлиста (расположена над списком плейлистов)
         self.add_playlist_button = QPushButton("Добавить плейлист")
         self.add_playlist_button.clicked.connect(self.create_new_playlist_dialog)
         self.layout.addWidget(self.add_playlist_button)
 
-        # Окно для выбора плейлистов
+        self.remove_playlist_button = QPushButton("Удалить плейлист")
+        self.remove_playlist_button.clicked.connect(self.delete_playlist)
+        self.layout.addWidget(self.remove_playlist_button)
+
         self.playlist_combobox = QComboBox()
         self.playlist_combobox.currentIndexChanged.connect(self.on_select_playlist_from_combobox)
         self.layout.addWidget(self.playlist_combobox)
@@ -160,7 +82,7 @@ class MusicPlayer(QWidget):
         self.timer.timeout.connect(self.next_track_if_this_ended)
 
     def create_new_playlist_dialog(self):
-        """ Открывает диалог для создания нового плейлиста """
+        """Открывает диалог для создания нового плейлиста"""
         name, ok = QInputDialog.getText(self, "Создать плейлист", "Введите название плейлиста:")
 
         if ok and name:
@@ -175,13 +97,45 @@ class MusicPlayer(QWidget):
             # Создаем новый плейлист и добавляем его в список
             self.playlist_objects.append({
                 "name": name,
-                "playlist": Playlist()
+                "playlist": Playlist(),
             })
 
             self.playlist_combobox.addItem(name)
 
+    def delete_playlist(self):
+        """Удаляет выбранный плейлист"""
+        current_name = self.playlist_combobox.currentText()
+
+        if not current_name:
+            QMessageBox.warning(self, "Ошибка", "Выберите плейлист для удаления.")
+            return
+
+        # Подтверждение удаления
+        reply = QMessageBox.question(
+            self, "Удаление плейлиста",
+            f"Вы уверены, что хотите удалить плейлист '{current_name}'?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            # Находим и удаляем плейлист
+            playlist_object = get_playlist_object_by_name(current_name, self.playlist_objects)
+            if playlist_object:
+                self.playlist_objects.remove(playlist_object)
+                self.playlist_combobox.removeItem(self.playlist_combobox.currentIndex())
+                self.current_playlist = None
+                self.playlist_widget.clear()
+                QMessageBox.information(self, "Удаление", f"Плейлист '{current_name}' успешно удален.")
+            else:
+                QMessageBox.warning(self, "Ошибка", "Не удалось найти плейлист для удаления.")
+
+        # Если больше нет плейлистов, очищаем список
+        if self.playlist_combobox.count() == 0:
+            self.current_playlist = None
+            self.playlist_widget.clear()
+
     def on_select_playlist_from_combobox(self):
-        """ Хендлер для выбора плейлиста из комбобокса """
+        """Хендлер для выбора плейлиста из комбобокса."""
         current_name = self.playlist_combobox.currentText()
         playlist_object = get_playlist_object_by_name(current_name, self.playlist_objects)
         if playlist_object:
@@ -189,63 +143,21 @@ class MusicPlayer(QWidget):
             self.update_playlist_widget()
 
     def update_playlist_widget(self):
-        """ Обновляет виджет списка песен для текущего плейлиста """
+        """Обновляет виджет списка песен для текущего плейлиста."""
         self.playlist_widget.clear()
         if self.current_playlist:
             for node in self.current_playlist:
                 self.playlist_widget.addItem(os.path.basename(node.data.path))
 
-    def open_playlist_manager(self):
-        """ Открывает менеджер плейлистов """
-        self.playlist_manager = PlaylistManager(self.playlist_objects)
-        self.playlist_manager.choose_playlist.connect(self.on_select_playlist)
-        self.playlist_manager.remove_playlist.connect(self.on_remove_playlist)
-        self.playlist_manager.add_playlist.connect(self.on_create_playlist)
-        self.playlist_manager.show()
-
-    def on_select_playlist(self, name):
-        """ Хендлер для события выбора плейлиста """
-        self.current_playlist = get_playlist_object_by_name(name, self.playlist_objects)["playlist"]
-        print(self.current_playlist)
-        self.playlist_widget.clear()
-        for node in self.current_playlist:
-            self.playlist_widget.addItem(os.path.basename(node.data.path))
-
-    def on_remove_playlist(self, name):
-        """ Хендлер для события удаления плейлиста """
-        print(self.playlist_objects)
-        self.playlist_objects.remove(get_playlist_object_by_name(name, self.playlist_objects))
-        self.update_playlist_overview()
-
-    def on_create_playlist(self, name):
-        """ Хендлер для события создания плейлиста """
-        print(self.playlist_objects)
-        self.playlist_objects.append({
-            "name": name,
-            "playlist": Playlist()
-        })
-        self.update_playlist_overview()
-
-    def update_playlist_overview(self):
-        """ Обновление списка всех плейлистов """
-        self.playlist_overview_widget.clear()
-        for playlist in self.playlist_objects:
-            self.playlist_overview_widget.addItem(playlist["name"])
-
-    def on_playlist_selected(self, item):
-        """ Хендлер для клика на плейлист в списке """
-        playlist_name = item.text()
-        self.on_select_playlist(playlist_name)
-
     def add_song(self):
-        """ Добавление песен """
+        """Добавление песен."""
         if self.current_playlist is None:
             QMessageBox.warning(self, "Ошибка", "Сначала выберите плейлист")
             return
 
         options = QFileDialog.Options()
         files, _ = QFileDialog.getOpenFileNames(
-            self, "Выберите музыкальные файлы", "", "Audio Files (*.mp3 *.wav)", options=options
+            self, "Выберите музыкальные файлы", "", "Audio Files (*.mp3 *.wav)", options=options,
         )
         if files:
             for file in files:
@@ -253,7 +165,7 @@ class MusicPlayer(QWidget):
                 self.playlist_widget.addItem(os.path.basename(file))
 
     def remove_song(self):
-        """ Удаление песен """
+        """Удаление песен."""
         selected_items = self.playlist_widget.selectedItems()
         if not selected_items:
             QMessageBox.warning(self, "Ошибка", "Выберите композицию для удаления.")
@@ -269,7 +181,7 @@ class MusicPlayer(QWidget):
             self.playlist_widget.takeItem(row)
 
     def find_song_by_id(self, sid):
-        """ Поиск песни по id """
+        """Поиск песни по id."""
         for idx, track in enumerate(self.current_playlist):
             if idx == sid:
                 return track
@@ -277,14 +189,15 @@ class MusicPlayer(QWidget):
         return None
 
     def play_song_by_id(self, sid):
-        """ Проигрывание песни по id """
+        """Проигрывание песни по id."""
         track = self.find_song_by_id(sid)
-        self.current_playlist.play_all(track)
-        self.timer.start()
+        if track:
+            self.current_playlist.play_all(track)
+            self.timer.start()
         return
 
     def choose_song(self):
-        """ Проигрывание выбранной песни """
+        """Проигрывание выбранной песни."""
         current_row = self.playlist_widget.currentRow()
         if current_row < 0:
             QMessageBox.warning(self, "Ошибка", "Выберите композицию для воспроизведения.")
@@ -294,7 +207,7 @@ class MusicPlayer(QWidget):
             return self.play_song_by_id(current_row)
 
     def play_previous(self):
-        """ Проигрывание предыдущей песни """
+        """Проигрывание предыдущей песни."""
         if self.current_playlist is None:
             QMessageBox.warning(self, "Ошибка", "Сначала выберите плейлист")
             return
@@ -306,7 +219,7 @@ class MusicPlayer(QWidget):
         self.current_playlist.previous_track()
 
     def play_next(self):
-        """ Проигрывание следующей песни """
+        """Проигрывание следующей песни."""
         if self.current_playlist is None:
             QMessageBox.warning(self, "Ошибка", "Сначала выберите плейлист")
             return
@@ -318,17 +231,19 @@ class MusicPlayer(QWidget):
         self.current_playlist.next_track()
 
     def next_track_if_this_ended(self):
-        """ Проигрывание следующего трека после завершения предыдущего """
+        """Проигрывание следующего трека после завершения предыдущего."""
         if pygame.mixer.music.get_busy():
             return
 
         self.current_playlist.next_track()
 
     def change_position_dialogue(self) -> int:
-        """ Окно смены позиции песни """
+        """Окно смены позиции песни"""
         current_row = self.playlist_widget.currentRow()
         if current_row < 0:
-            QMessageBox.warning(self, "Ошибка", "Выберите композицию для смены позиции.")
+            QMessageBox.warning(
+                self, "Ошибка", "Выберите композицию для смены позиции.",
+            )
             return
 
         if self.current_playlist is None:
@@ -336,12 +251,14 @@ class MusicPlayer(QWidget):
             return
 
         if len(self.current_playlist) < 2:
-            QMessageBox.warning(self, "Ошибка", "В плейлисте должно быть минимум 2 композиции для перестановки")
+            QMessageBox.warning(
+                self, "Ошибка", "В плейлисте должно быть минимум 2 композиции для перестановки",
+            )
             return
 
         response = QInputDialog.getInt(
-            self, f"Место композиции", f"Введите число от 1 до {len(self.current_playlist) - 1}",
-            min=1, max=len(self.current_playlist) - 1
+            self, "Место композиции", f"Введите число от 1 до {len(self.current_playlist) - 1}",
+            min=1, max=len(self.current_playlist) - 1,
         )
 
         if response[1] is False:
@@ -355,35 +272,23 @@ class MusicPlayer(QWidget):
         self.change_position(number, current_row)
 
     def change_position(self, position, current_row):
-        """ Смена позиции песни """
+        """Смена позиции песни"""
         selected_track = self.find_song_by_id(current_row)
-        prev_track = self.find_song_by_id(position - 1)
 
-        if current_row < position:
-            prev_track = self.find_song_by_id(position)
+        self.current_playlist.insert(position, selected_track)
+        self.current_playlist.remove(selected_track)
+        self.update_playlist_widget()
 
-        self.remove_song()
-        self.current_playlist.insert(prev_track.data, selected_track.data)
-        self.playlist_widget.clear()
-        for node in self.current_playlist:
-            self.playlist_widget.addItem(os.path.basename(node.data.path))
-
-
-def get_playlist_object_by_name(name: str, playlist_objects: list):
-    """ Получение плейлиста-объекта по названию """
-    # import ipdb; ipdb.set_trace()
-    for playlist_object in playlist_objects:
-        try:
-            if playlist_object["name"] == name or playlist_object["name"] == name[:name.index(',')]:
-                return playlist_object
-        except:
-            ...
+def get_playlist_object_by_name(name, playlist_objects):
+    for playlist in playlist_objects:
+        if playlist['name'] == name:
+            return playlist
 
     return None
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QApplication(sys.argv)
-    player = MusicPlayer()
-    player.show()
+    window = MusicPlayer()
+    window.show()
     sys.exit(app.exec_())

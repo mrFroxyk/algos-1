@@ -1,9 +1,10 @@
-""" Модуль композиции """
+"""Модуль композиции"""
 from typing import Self
 
 
-class Composition():
-    """ Класс композиции """
+class Composition:
+    """Класс композиции"""
+
     def __init__(self, path: str):
         self.path = path
 

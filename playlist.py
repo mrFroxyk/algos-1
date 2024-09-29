@@ -1,34 +1,36 @@
-""" Модуль плейлиста """
+"""Модуль плейлиста"""
 import pygame
-from linked_list import LinkedList
+
 from composition import Composition
+from linked_list import LinkedList
 
 
 class Playlist(LinkedList):
-    """ Класс плейлиста """
+    """Класс плейлиста"""
+
     def __init__(self, data = None):
         super().__init__(data)
         self._current = None
 
     def play_all(self, track) -> Composition:
-        """ Проигрывать все треки с начала """
+        """Проигрывать все треки с начала"""
         self._current = track
         pygame.mixer.music.load(self.current.path)
         pygame.mixer.music.play()
 
     def next_track(self) -> Composition:
-        """ Перейти к следующему треку """
+        """Перейти к следующему треку"""
         if self._current:
             self.play_all(self._current.next_item)
 
     def previous_track(self) -> Composition:
-        """ Перейти к предыдущему треку """
+        """Перейти к предыдущему треку"""
         if self._current:
             self.play_all(self._current.previous_item)
 
     @property
     def current(self):
-        """ Возвращает текущий трек """
+        """Возвращает текущий трек"""
         if not self._current:
             return None
 

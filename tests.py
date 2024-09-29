@@ -2,11 +2,10 @@
 
 import unittest
 
-from linked_list import LinkedListItem, LinkedList  # pylint: disable=E0401
-
+from linked_list import LinkedList, LinkedListItem  # pylint: disable=E0401
 
 TEST_LEN = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 ]
 
 TEST_LAST = TEST_LEN
@@ -76,6 +75,7 @@ def create_linked_list(nodes_list):
 
 class TestLinkedListItem(unittest.TestCase):
     """Тест-кейс класса LinkedListItem"""
+
     def test_next_item(self):
         """Тест соединения узлов через next_item"""
         node_a = LinkedListItem(42)
@@ -99,6 +99,7 @@ class TestLinkedListItem(unittest.TestCase):
 
 class TestLinkedList(unittest.TestCase):
     """Тест-кейс класса LinkedList"""
+
     def test_len(self):
         """Тест метода len"""
         for expected_len in TEST_LEN:
@@ -275,5 +276,5 @@ class TestLinkedList(unittest.TestCase):
             with self.subTest(node_list=list(range(i))):
                 self.assertEqual(
                     [item for item in reversed(linked_list)],
-                    list(range(i - 1, -1, -1))
+                    list(range(i - 1, -1, -1)),
                 )
