@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
     QFileDialog,
+    QHBoxLayout,
     QInputDialog,
     QListWidget,
     QMessageBox,
@@ -26,7 +27,7 @@ class MusicPlayer(QWidget):
         super().__init__()
 
         self.setWindowTitle("Music Player")
-        self.setGeometry(100, 100, 400, 400)
+        self.setGeometry(100, 100, 600, 400)
         self.current_playlist: Playlist | None = None
         self.playlist_objects: list[dict[str, Playlist]] = []
 
@@ -34,53 +35,67 @@ class MusicPlayer(QWidget):
 
         self.selected_song_index: int | None = None
 
-        self.layout = QVBoxLayout()
+        main_layout = QHBoxLayout()
 
-        self.add_playlist_button = QPushButton("Add Playlist")
-        self.add_playlist_button.clicked.connect(self.create_new_playlist_dialog)
-        self.layout.addWidget(self.add_playlist_button)
-
-        self.remove_playlist_button = QPushButton("Delete Playlist")
-        self.remove_playlist_button.clicked.connect(self.delete_playlist)
-        self.layout.addWidget(self.remove_playlist_button)
+        self.left_layout = QVBoxLayout()
 
         self.playlist_combobox = QComboBox()
         self.playlist_combobox.currentIndexChanged.connect(self.on_select_playlist_from_combobox)
-        self.layout.addWidget(self.playlist_combobox)
+        self.left_layout.addWidget(self.playlist_combobox)
 
         self.playlist_widget = QListWidget()
-        self.layout.addWidget(self.playlist_widget)
+        self.left_layout.addWidget(self.playlist_widget)
+
+        main_layout.addLayout(self.left_layout)
+
+        self.right_layout = QVBoxLayout()
+
+        # control button
+        self.add_playlist_button = QPushButton("Add Playlist")
+        self.add_playlist_button.clicked.connect(self.create_new_playlist_dialog)
+        self.right_layout.addWidget(self.add_playlist_button)
+
+        self.remove_playlist_button = QPushButton("Delete Playlist")
+        self.remove_playlist_button.clicked.connect(self.delete_playlist)
+        self.right_layout.addWidget(self.remove_playlist_button)
 
         self.add_button = QPushButton("Add Composition")
         self.add_button.clicked.connect(self.add_song)
-        self.layout.addWidget(self.add_button)
+        self.right_layout.addWidget(self.add_button)
 
         self.remove_button = QPushButton("Delete Composition")
         self.remove_button.clicked.connect(self.remove_song)
-        self.layout.addWidget(self.remove_button)
+        self.right_layout.addWidget(self.remove_button)
 
         self.play_button = QPushButton("Play")
         self.play_button.clicked.connect(self.choose_song)
-        self.layout.addWidget(self.play_button)
+        self.right_layout.addWidget(self.play_button)
 
         self.prev_button = QPushButton("Previous")
         self.prev_button.clicked.connect(self.play_previous)
-        self.layout.addWidget(self.prev_button)
+        self.right_layout.addWidget(self.prev_button)
 
         self.next_button = QPushButton("Next")
         self.next_button.clicked.connect(self.play_next)
-        self.layout.addWidget(self.next_button)
+        self.right_layout.addWidget(self.next_button)
 
         self.change_button = QPushButton("Change Position")
         self.change_button.clicked.connect(self.change_position_dialogue)
-        self.layout.addWidget(self.change_button)
+        self.right_layout.addWidget(self.change_button)
 
-        self.setLayout(self.layout)
+        main_layout.addLayout(self.right_layout)
+
+        self.setLayout(main_layout)
+
+        font = self.font()
+        font.setPointSize(12)
+        self.setFont(font)
+
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self.next_track_if_this_ended)
 
-        # add default playlist
+        # Add default playlist
         if not self.playlist_objects:
             default_playlist_name = "Default Playlist"
             default_playlist = Playlist()
@@ -256,54 +271,23 @@ class MusicPlayer(QWidget):
             QMessageBox.warning(self, "Error", "Select a composition to change its position.")
             return
 
-        if self.current_playlist is None:
-            QMessageBox.warning(self, "Error", "Please select a playlist first.")
-            return
-
-        if len(self.current_playlist) < 2:
-            QMessageBox.warning(
-                self, "Error", "The playlist must contain at least 2 compositions to rearrange.",
-            )
-            return
-
-        response = QInputDialog.getInt(
+        new_position, ok = QInputDialog.getInt(
             self,
-            "Change Composition Position",
-            f"Enter a number between 1 and {len(self.current_playlist)}",
-            min=1,
-            max=len(self.current_playlist),
+            "Change Position",
+            "Enter new position (1-based):",
+            value=current_row + 1,
         )
 
-        if not response[1]:
-            return
-
-        new_position = response[0] - 1
-
-        if current_row == new_position:
-            return
-
-        self.change_position(new_position, current_row)
-
-    def change_position(self, position: int, current_row: int) -> None:
-        """Change the position of a song."""
-        selected_track = self.find_song_by_id(current_row)
-        prev_track = self.find_song_by_id(position - 1)
-
-        if current_row < position:
-            prev_track = self.find_song_by_id(position)
-
-        self.remove_song()
-        self.current_playlist.insert(prev_track.data, selected_track.data)
-        self.playlist_widget.clear()
-        for node in self.current_playlist:
-            self.playlist_widget.addItem(pathlib.Path(node.data.path).name)
+        if ok:
+            self.current_playlist.change_position(current_row, new_position - 1)
+            self.update_playlist_widget()
 
 
 def get_playlist_object_by_name(
     name: str,
     playlist_objects: list[dict[str, Playlist]],
 ) -> dict[str, Playlist] | None:
-    """Search for a playlist object by name."""
+    """Get the playlist object by name."""
     for obj in playlist_objects:
         if obj["name"] == name:
             return obj
@@ -312,6 +296,6 @@ def get_playlist_object_by_name(
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MusicPlayer()
-    window.show()
+    player = MusicPlayer()
+    player.show()
     sys.exit(app.exec_())
