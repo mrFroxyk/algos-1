@@ -10,7 +10,7 @@ pygame = "2.6.0"
 ipdb = "^0.13.13"
 
 [tool.ruff]
-line-length = 79
+line-length = 100
 indent-width = 4
 target-version = "py312"
 
@@ -83,6 +83,7 @@ ignore = [
   "ANN002",
   # https://docs.astral.sh/ruff/rules/missing-type-kwargs
   "ANN003",
+  "ANN201",
   # https://docs.astral.sh/ruff/rules/any-type
   "ANN401",
   # https://docs.astral.sh/ruff/rules/undocumented-public-module

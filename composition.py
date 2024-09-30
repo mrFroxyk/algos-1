@@ -1,14 +1,14 @@
-"""Модуль композиции"""
 from typing import Self
 
 
 class Composition:
-    """Класс композиции"""
+    """Composition class."""
 
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self.path = path
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: Self) -> bool:
+        """Check if two compositions are equal."""
         if not other:
             return False
 

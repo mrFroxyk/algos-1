@@ -1,5 +1,3 @@
-"""Тесты модуля linked_list"""
-
 import unittest
 
 from linked_list import LinkedList, LinkedListItem  # pylint: disable=E0401
