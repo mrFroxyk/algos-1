@@ -1,5 +1,5 @@
-from typing import Self
-from typing import Any
+from typing import Any, Self
+
 
 class LinkedListItem:
     """Node of a linked list."""

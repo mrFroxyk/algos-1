@@ -1,4 +1,3 @@
-import os
 import pathlib
 import sys
 
@@ -80,6 +79,18 @@ class MusicPlayer(QWidget):
         self.timer = QtCore.QTimer(self)
         self.timer.setInterval(1000)
         self.timer.timeout.connect(self.next_track_if_this_ended)
+
+        # add default playlist
+        if not self.playlist_objects:
+            default_playlist_name = "Default Playlist"
+            default_playlist = Playlist()
+            self.playlist_objects.append({
+                "name": default_playlist_name,
+                "playlist": default_playlist,
+            })
+            self.playlist_combobox.addItem(default_playlist_name)
+            self.playlist_combobox.setCurrentText(default_playlist_name)
+            self.current_playlist = default_playlist
 
     def create_new_playlist_dialog(self) -> None:
         """Open a dialog to create a new playlist."""
@@ -257,7 +268,7 @@ class MusicPlayer(QWidget):
 
         response = QInputDialog.getInt(
             self,
-            "Change Composition Position", 
+            "Change Composition Position",
             f"Enter a number between 1 and {len(self.current_playlist)}",
             min=1,
             max=len(self.current_playlist),
