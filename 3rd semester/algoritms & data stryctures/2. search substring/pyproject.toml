@@ -3,8 +3,6 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-PyQt5 = "5.15.11"
-pygame = "2.6.0"
 # Exports functions to access the IPython debugger, which features tab completion, syntax highlighting, better tracebacks
 # https://github.com/gotcha/ipdb
 ipdb = "^0.13.13"
