@@ -155,4 +155,5 @@ exclude = [
   "**/views.py",
   "**/admin/*",
   "**/views/*",
+  "test_search.py",
 ]
