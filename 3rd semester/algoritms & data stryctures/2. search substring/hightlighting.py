@@ -37,7 +37,7 @@ def aplly_hightlights(source_string: str, segments: dict[str, list[list[int]]]) 
 
 
 def calculate_color_segment(
-    sub_string_indexes: dict[str, list[list[int]]]
+    sub_string_indexes: dict[str, list[list[int]]],
 ) -> list[tuple[int | str]]:
     """Calculate segment to hightlighting.
 

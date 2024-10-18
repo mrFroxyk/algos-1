@@ -12,7 +12,13 @@ from timer import timer
     'string',
     type=str,
 )
-@click.option('--sub-string', '-s', multiple=True, required=True, help="List of substrings to search for.")
+@click.option(
+    '--sub-string',
+    '-s',
+    multiple=True,
+    required=True,
+    help="List of substrings to search for.",
+)
 @click.option(
     '--case-sensitivity',
     is_flag=True,
@@ -21,13 +27,12 @@ from timer import timer
 @click.option(
     '--method',
     type=click.Choice(search.Method, case_sensitive=False),
-    default='last',
+    default=search.Method.FIRST,
     help="Search method: first or last occurrence.",
 )
 @click.option(
     '--count',
     type=int,
-    default=1,
     help="Number of occurrences to return.",
 )
 @click.option(
