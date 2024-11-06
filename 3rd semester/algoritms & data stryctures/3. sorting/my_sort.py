@@ -1,12 +1,12 @@
-"""
-Sort algorithm module. Can be used in CLI. Uses argparse.
+"""Sort algorithm module. Can be used in CLI. Uses argparse.
 """
 
 import argparse
 import copy
+import click
 import json
 import os
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -22,6 +22,7 @@ def my_sort(array: list, reverse: bool = False, animate: bool = False) -> list:
 
     Returns:
         list: sorted list
+
     """
 
     def _validate():
@@ -41,7 +42,7 @@ def my_sort(array: list, reverse: bool = False, animate: bool = False) -> list:
             return my_anim(
                 [
                     array,
-                ]
+                ],
             )
         return array
 
@@ -60,7 +61,7 @@ def my_sort(array: list, reverse: bool = False, animate: bool = False) -> list:
 
 
 def my_anim(anim_list: list[list]) -> None:
-    """Runs matplotlib animation of TimSort sortion algorithm
+    """Run matplotlib animation of TimSort sortion algorithm.
 
     Args:
         anim_list (list[list]): list of lists.
@@ -69,6 +70,7 @@ def my_anim(anim_list: list[list]) -> None:
 
     Returns:
         None
+
     """
 
     def animate(frame):
@@ -79,9 +81,10 @@ def my_anim(anim_list: list[list]) -> None:
 
         Returns:
             None: None
+
         """
         plt.clf()
-    
+
         x = range(len(frame))
         y = frame
 
@@ -112,8 +115,8 @@ class TimSort:
         self,
         reverse: bool = False,
         animate: bool = False,
-        key: Optional[Callable] = None,
-        cmp: Optional[Callable] = None,
+        key: Callable | None = None,
+        cmp: Callable | None = None,
     ):
         self._reverse = reverse
         self._animate = animate
@@ -136,6 +139,7 @@ class TimSort:
 
         Yields:
             list: step of sorting. Contain target list elements
+
         """
         n = len(arr)
         min_run = self.calc_min_run(n)
@@ -186,6 +190,7 @@ class TimSort:
 
         Returns:
             int: minimum length of run
+
         """
         r = 0
         while n >= self.MIN_MERGE:
@@ -203,6 +208,7 @@ class TimSort:
 
         Yields:
             list: step of sortion
+
         """
         for i in range(left + 1, right + 1):
             j = i
@@ -213,7 +219,7 @@ class TimSort:
                     yield arr
 
     def merge(self, arr: list, l: int, m: int, r: int):
-        """Merge sortion algorithm
+        """Merge sortion algorithm.
 
         Args:
             arr (list): list of elements
@@ -223,14 +229,15 @@ class TimSort:
 
         Yields:
             list: step of sortion
+
         """
         # original array is broken in two parts
         # left and right array
         len1, len2 = m - l + 1, r - m
         left, right = [], []
-        for i in range(0, len1):
+        for i in range(len1):
             left.append(arr[l + i])
-        for i in range(0, len2):
+        for i in range(len2):
             right.append(arr[m + 1 + i])
 
         i, j, k = 0, 0, l
@@ -268,7 +275,7 @@ class TimSort:
 
     @staticmethod
     def increasing(a, b) -> bool:
-        """Compares a and b in increasing order
+        """Compare a and b in increasing order.
 
         Args:
             a (_type_): Any that supports comparsions
@@ -276,12 +283,13 @@ class TimSort:
 
         Returns:
             bool: result of comparsion
+
         """
         return a < b
 
     @staticmethod
     def decreasing(a, b) -> bool:
-        """Compares a and b in decreasing order
+        """Compare a and b in decreasing order.
 
         Args:
             a (_type_): Any that supports comparsions
@@ -289,77 +297,54 @@ class TimSort:
 
         Returns:
             bool: result of comparsion
+
         """
         return a > b
 
 
-class _MyArgumentParser(argparse.ArgumentParser):
-    """Class used for parsing args from CLI"""
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.add_argument(
-            "-f",
-            "--file_path",
-            type=self.check_path,
-            help="Load data from file of .json format",
-        )
-        self.add_argument(
-            "-arr",
-            "--array",
-            nargs="+",
-            help="List of elements through space to sort. Must be same type",
-        )
-        self.add_argument(
-            "-r",
-            "--reverse",
-            action="store_true",
-            help="Reverse the order of the elements",
-        )
-        self.add_argument(
-            "-anm", "--animate", action="store_true", help="Show animation or not"
-        )
-
-    @staticmethod
-    def check_path(path: str) -> str:
-        """Checks if string is pathlike
-
-        Args:
-            path (str): pathlike str
-
-        Raises:
-            argparse.ArgumentTypeError: if argument is not pathlike
-
-        Returns:
-            str: path
-        """
-        if not os.path.exists(path):
-            raise argparse.ArgumentTypeError("File does not exist")
-        return path
-
-
-def main() -> None:
-    """Main function"""
-    parser = _MyArgumentParser()
-    args = parser.parse_args()
-    file_path, array, reverse, animate = (
-        args.file_path,
-        args.array,
-        args.reverse,
-        args.animate,
-    )
-
+def check_path(ctx, param, value: str) -> str:
+    """Check if string is pathlike."""
+    if value and not os.path.exists(value):
+        raise click.BadParameter("File does not exist.")
+    return value
+@click.command()
+@click.option(
+    "-f",
+    "--file-path",
+    callback=check_path,
+    help="Load data from file of .json format",
+    type=str,
+)
+@click.option(
+    "-arr",
+    "--array",
+    help="List of elements separated by space to sort. Must be of the same type.",
+    type=str,  # Строка для ввода данных
+)
+@click.option(
+    "-r",
+    "--reverse",
+    is_flag=True,
+    help="Reverse the order of the elements",
+)
+@click.option(
+    "-anm",
+    "--animate",
+    is_flag=True,
+    help="Show animation or not",
+)
+def main(file_path: str, array: str, reverse: bool, animate: bool) -> None:
+    """Entry point function."""
     if file_path:
-        with open(file_path, "r", encoding="utf-8") as file:
+        with open(file_path, encoding="utf-8") as file:
             array = json.load(file)
-    else:
-        array = list(map(int, array))
+    elif array:
+        array = [int(x) for x in array.split()]  # Преобразуем строку в список целых чисел
 
     print(f"Before sort: {array}")
     print(f"Reverse flag: {reverse}\n")
     my_sort(array, reverse, animate)
     print(f"After sort: {array}")
-
 
 if __name__ == "__main__":
     main()
