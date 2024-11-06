@@ -36,7 +36,7 @@ main:
     push format_input
     call scanf
     add esp, 8                      ; Очистка стека
-    
+
     
 
 
