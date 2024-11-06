@@ -66,8 +66,8 @@ start:
 
                 finit
                 fld qword [ds:x]
-                fld qword [ds:a]
-                fcomip st1
+                fld qword [ds:a] ; put 2 value to stack
+                fcomip st1 ; if x>=2 go to else
                 jbe else_2
                 if_2:
                 ;--- y2 = a - 1 ---
@@ -103,9 +103,9 @@ start:
 
 
                 ;----- x++ -----------
-                fld1
-                fadd qword [ds:x]
-                fstp [ds:x]
+                fld1 ; put 1 to fpu stack
+                fadd qword [ds:x] ; add x to current fpu stack value
+                fstp [ds:x] ; upload new value from fpu stack
                 ;---------------------
 
 
@@ -123,13 +123,7 @@ start:
 ;=================================================
 section '.idata' data import readable
 ;=================================================
-        library kernel, 'kernel32.dll',\
-                msvcrt, 'msvcrt.dll'
-  
-  
-  import kernel,\
-                                ExitProcess, 'ExitProcess'
-          
-  import msvcrt,\
-                                printf, 'printf',\
-          getch, '_getch', scanf, 'scanf'
+    library kernel32, 'kernel32.dll', msvcrt, 'msvcrt.dll'
+    
+    import  kernel32, ExitProcess, 'ExitProcess'
+    import  msvcrt, printf, 'printf', getch, '_getch', scanf, 'scanf'
