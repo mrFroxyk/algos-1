@@ -42,8 +42,8 @@ start:
                 fld qword [ds:x]
                 mov [ds:temp], 2
                 fild dword [ds:temp]
-                fcomip st1
-                jbe else_1
+                fcomip st1 
+                jbe else_1 ; jump if it below or equal (x < 2)
                 if_1:
                 ;---- y1 = 2 - x -----
                       fld qword [ds:x]
