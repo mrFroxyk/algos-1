@@ -302,18 +302,12 @@ class TimSort:
         return a > b
 
 
-def check_path(ctx, param, value: str) -> str:
-    """Check if string is pathlike."""
-    if value and not os.path.exists(value):
-        raise click.BadParameter("File does not exist.")
-    return value
 @click.command()
 @click.option(
     "-f",
     "--file-path",
-    callback=check_path,
     help="Load data from file of .json format",
-    type=str,
+    type=click.Path(exists=True)
 )
 @click.option(
     "-arr",
