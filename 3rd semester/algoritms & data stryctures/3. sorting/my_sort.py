@@ -199,7 +199,7 @@ class TimSort:
         return n + r
 
     def insertion_sort(self, arr: list, left: int, right: int):
-        """Insertion sort algorithm. Modifies arr
+        """One step of insertion sort algorithm. Modifies arr
 
         Args:
             arr (list): list of elements
