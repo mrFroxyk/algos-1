@@ -94,7 +94,7 @@ def my_anim(anim_list: list[list]) -> None:
 
     fig, _ = plt.subplots()
 
-    anim = FuncAnimation(  # pylint: disable=W0612
+    anim = FuncAnimation(  # pylint: disable=W0612  # noqa: F841
         fig=fig,
         func=animate,
         frames=iter(anim_list),
