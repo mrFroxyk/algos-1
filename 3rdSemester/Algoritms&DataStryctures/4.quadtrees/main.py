@@ -1,13 +1,17 @@
-import threading
-import argparse
+import click
+import pathlib
 from PIL import Image, ImageDraw
+from concurrent.futures import ThreadPoolExecutor
+import math
 
+box_coords = tuple[int, int, int, int]  # (left, top, right, bottom)
+colors_brightness = tuple[int, int, int]
 
 class QuadtreeNode:
     """Node for Quadtree that holds a subsection of an image and
     information about that section."""
 
-    def __init__(self, img, box, depth):
+    def __init__(self, img: Image.Image, box: box_coords, depth: int):
         self.box = box  # (left, top, right, bottom)
         self.depth = depth
         self.children = None  # tl, tr, bl, br
@@ -16,9 +20,13 @@ class QuadtreeNode:
         # Gets the nodes average color
         image = img.crop(box)
         self.width, self.height = image.size  # (width, height)
-        hist = image.histogram()
-        self.color, self.error = self.color_from_histogram(hist)  # (r, g, b), error
+        hist = image.histogram()  # list of 768 color value | hist[767] - pixel counts with the max brightness of Blue channel
+        self.color, self.error = self.color_from_histogram(
+            hist
+        )  # (r, g, b), variance_error
 
+
+    
     def weighted_average(self, hist):
         """Return the weighted color average and error from a hisogram of pixles."""
         total = sum(hist)
@@ -37,11 +45,25 @@ class QuadtreeNode:
         e = re * 0.2989 + ge * 0.5870 + be * 0.1140
         return (int(r), int(g), int(b)), e
 
-    def split(self, img):
+    # def color_from_histogram(
+    #     self,
+    #     hist: list[int],
+    #     image: Image.Image,
+    # ) -> tuple[ colors_brightness, int ]:
+    #     """Return the average rgb color from a given histogram of pixel color counts"""
+    #     from PIL import ImageStat
+    #     stat = ImageStat.Stat(img)
+
+    #     red_error, green_error, blue_error = stat.stddev[:3]  # color_variance
+    #     total_error = red_error * 0.2989 + green_error * 0.5870 + blue_error * 0.1140
+    #     red, green, blue = stat.mean[:3]  # color_mean
+
+    #     return (int(red_error), int(green_error), int(blue_error)), total_error
+    
+    def split(self, img: Image.Image) -> None:
         """
         Divide image into 4 ports
         :param img: image
-        :return: None
         """
         l, t, r, b = self.box
         lr = l + (r - l) / 2
@@ -58,54 +80,60 @@ class Tree:
     sections of an image where there at most n leaf nodes where
     n is the number of pixels in the image
     """
+    
+    
 
-    def __init__(self, image):
+    def __init__(self, image: Image.Image, depth: int):
+        # image.getbbox() - return some like (0, 0, 4096, 2304) = left & top coord for main point and width and heigh of image
         self.root = QuadtreeNode(image, image.getbbox(), 0)
         self.width, self.height = image.size
-        self.max_depth = 7
+        self.max_depth = min(depth, 100)
+        self.COLOR_VARIANCE = 10 - math.log2(depth)
+
+        # print(self.COLOR_VARIANCE)
+        if depth > 10: 
+            print("Be paitient, more depth = more runtime")
 
         self._build_tree(image, self.root)
 
     def _build_tree(self, image, node):
         """Recursively adds nodes untill max_depth is reached or error is less than 12"""
-        if (node.depth >= self.max_depth) or (node.error <= 12):
+        if (node.depth >= self.max_depth) or (node.error <= self.COLOR_VARIANCE):
             node.leaf = True
             return
         node.split(image)
 
         if node.depth == 0:
-            threads = []
-            for child in node.children:
-                thread = threading.Thread(target=self._build_tree, args=(image, child))
-                threads.append(thread)
-                thread.start()
-
-            for thread in threads:
-                thread.join()
-
+            with ThreadPoolExecutor() as executor:
+                futures = [
+                    executor.submit(self._build_tree, image, child)
+                    for child in node.children
+                ]
+                # Ensure all threads complete
+                for future in futures:
+                    future.result()
         else:
             for child in node.children:
                 self._build_tree(image, child)
 
-    def get_leaf_nodes(self, depth):
-        """Gets all the nodes on a given depth/level"""
 
-        def get_leaf_nodes_recusion(tree, node, depth, func):
-            """Recusivley gets leaf nodes based on whether a node is a leaf or the given depth is reached"""
-            if node.leaf is True or node.depth == depth:
-                func(node)
-            elif node.children is not None:
+    def get_leaf_nodes(self, depth: int):
+        """Gets all the leaf nodes."""
+
+        def get_leaf_nodes_recusion(node: QuadtreeNode):
+            """Recusivley gets leaf nodes based on whether a node is a leaf."""
+            collector = []
+            if node.leaf or node.depth == depth:
+                collector.append(node)
+            else:
+                # if have any child node
                 for child in node.children:
-                    get_leaf_nodes_recusion(tree, child, depth, func)
+                    collector = [*collector, *get_leaf_nodes_recusion(child)]
+            return collector
 
-        if depth > self.max_depth:
-            depth = self.max_depth
+        return get_leaf_nodes_recusion(self.root)
 
-        leaf_nodes = []
-        get_leaf_nodes_recusion(self, self.root, depth, leaf_nodes.append)
-        return leaf_nodes
-
-    def make_img(self, depth, lines):
+    def make_img(self, depth, lines) -> Image.Image:
         """Creates a Pillow image object from a given level/depth of the tree"""
         image = Image.new("RGB", (int(self.width), int(self.height)))
         draw = ImageDraw.Draw(image)
@@ -122,40 +150,38 @@ class Tree:
         return image
 
 
-if __name__ == "__main__":
-    "Entrypoint"
-    parser = argparse.ArgumentParser(description="Make quadtree image")
-    parser.add_argument("image_path", type=str, help="Path to the image")
-    parser.add_argument("-d", "--depth", type=int, default=2, help="Depth in tree")
-    parser.add_argument(
-        "-l", "--lines", action="store_true", help="Show lines in image"
-    )
-    parser.add_argument(
-        "-m", "--max_depth", action="store_true", help="show maximum depth of an image"
-    )
-    parser.add_argument("-glove", "--gif_glove", action="store_true", help="create gif")
+@click.command()
+@click.argument("image_path", type=click.Path(exists=True))
+@click.option("-d", "--depth", type=int, default=2, help="Depth in tree")
+@click.option("-l", "--lines", is_flag=True, help="Show lines in image")
+@click.option("-glove", "--gif_glove", is_flag=True, help="Create gif")
+def make_quadtree_image(image_path: pathlib.Path, depth: int, lines: bool, gif_glove: bool):
+    """Entrypoint"""
 
-    args = parser.parse_args()
-
-    img = Image.open(args.image_path).convert("RGB")
-    qtree = Tree(img)
-    depth = args.depth
-    output_image = qtree.make_img(depth, lines=args.lines)
+    img = Image.open(image_path).convert("RGB")
+    qtree = Tree(img, depth)
+    output_image = qtree.make_img(depth, lines=lines)
     output_image.save("compressed_img.jpg")
 
-    if args.gif_glove:
+    if gif_glove:
         frames = []
         for i in range(qtree.max_depth):
-            output_image = qtree.make_img(i, lines=args.lines)
+            output_image = qtree.make_img(i, lines=lines)
             frames.append(output_image)
+        
+        extra_images = [*frames[1:], *[frames[-1]]*8]  # More duration for output frame
+
+        # kostia_anime = Image.open('kostia_anime.jpg').convert("RGB")
+        #extra_images = [*frames[1:], *[frames[-1]]*1, *[kostia_anime]*30]  # More duration for output frame
+
         frames[0].save(
             "compress_gif.gif",
             save_all=True,
-            append_images=frames[1:],  # Ignore first frame.
+            append_images=extra_images,  # Ignore first frame.
             optimize=True,
-            duration=800,
+            duration=600,
             loop=0,
         )
 
-    if args.max_depth:
-        print(f"max depth of an image is {qtree.max_depth}")
+if __name__ == "__main__":
+    make_quadtree_image()
