@@ -50,7 +50,8 @@ negate_x:
 calc_y2:
     # y2 = 2 если X > 4, иначе y2 = X
     li   t1, 4                 # t1 = 4
-    blt  s1, t1, set_y2_x      # Если X <= 4, y2 = X
+    beq s1, t1, set_y2_x  # Переход, если s1 == t1
+    blt s1, t1, set_y2_x  # Переход, если s1 < t1
     li   t3, 2                 # t3 = 2
     j    calc_y
 
@@ -80,9 +81,7 @@ calc_y:
     li   a7, 1                 # Системный вызов write
     ecall                      # Выводим результат
  
-    la   a0, result_2          # Загружаем is:
-    li   a7, 4                 # Системный вызов write
-    ecall                      # Выводим результат
+
     
     la   a0, new_line          # Загружаем is:
     li   a7, 4                 # Системный вызов write
