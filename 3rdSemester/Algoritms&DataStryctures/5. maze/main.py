@@ -235,7 +235,6 @@ class Maze:
                         + [[new_pos[0], new_pos[1]]],
                     ]
                     ways.append(maze[new_pos[0]][new_pos[1]])
-                
 
             try_move((0, 1), 2)
             try_move((-1, 0), 2)
@@ -258,7 +257,7 @@ class Maze:
                             if maze[i][j][0] < maze[new_start[0]][new_start[1]][0]:
                                 new_start = [i, j]
                 a_way_out(maze, new_start, end_pos)
-        
+
         solving_maze = copy.deepcopy(self.maze)
         for i in range(1, self.rows_fixed, 2):
             for j in range(1, self.cols_fixed, 2):
@@ -271,15 +270,12 @@ class Maze:
         ]
         self.solving_states.append(solving_maze[start[0]][start[1]][2])
 
-
         a_way_out(solving_maze, start, end)
-
 
         self.solving_states.append(solving_maze[end[0]][end[1]][2])
         self.path = solving_maze[end[0]][end[1]][2]
 
         # st()
-
 
     def import_maze_from_file(self, filename: str) -> None:
         """Import a maze from a text file."""
@@ -334,15 +330,16 @@ class Maze:
                 file.write("".join(map(str, row)) + "\n")
 
     def create_maze_png(self, maze: Matrix) -> Image.Image:
-        """Create an image of a labyrinth with a solution path if there is one"""
+        """Create an image of a labyrinth with a solution path if there is one."""
 
-        cell_size = 20  # Adjust cell size as needed, you should change the for algorithm in import also
+        cell_size = 20  # Adjust cell size as needed
 
         width = self.cols_fixed * cell_size
         height = self.rows_fixed * cell_size
         img = Image.new("RGB", (width, height), PATH_COLOR)
         draw = ImageDraw.Draw(img)
 
+        # Draw the maze walls
         for i in range(self.rows_fixed):
             for j in range(self.cols_fixed):
                 if maze[i][j] == 1:
@@ -353,9 +350,9 @@ class Maze:
                         ],
                         fill=WALL_COLOR,
                     )
-        # st()
 
-        for path_cell in self.path: 
+        frames = []
+        for path_cell in self.path:
             x, y = path_cell
             draw.rectangle(
                 [
@@ -364,9 +361,19 @@ class Maze:
                 ],
                 fill=SOLVE_PATH_COLOR,
             )
+            # Save a copy of the current state of the image
+            frames.append(img.copy())
 
+        # Save the animation as a GIF
+        frames[0].save(
+            "result.gif",
+            save_all=True,
+            append_images=frames[1:],  # Append frames after the first one
+            optimize=True,
+            duration=200,
+            loop=0,
+        )
         return img
-
 
 if __name__ == "__main__":
     """Entrypoint."""
@@ -428,7 +435,9 @@ if __name__ == "__main__":
     solve_indecies = solve_args.split(",")
 
     if len(solve_indecies) != 4:
-        print("Provide solving coordinates in the format 'start_row,start_col,end_row,end_col' to see solution")
+        print(
+            "Provide solving coordinates in the format 'start_row,start_col,end_row,end_col' to see solution"
+        )
         if args.console_output:
             maze.print_maze()
 
