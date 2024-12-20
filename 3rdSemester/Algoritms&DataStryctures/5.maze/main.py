@@ -136,6 +136,25 @@ class Maze:
                 self.maze[i][j] = 0
         self.index = 2
 
+    # def generate_maze(self):
+    #     """Generate a simple maze with random walls."""
+
+    #     self.maze = [[0] * self.cols_fixed for _ in range(self.rows_fixed)]
+    #     # Создать границы
+    #     for i in range(self.rows_fixed):
+    #         self.maze[i][0] = 1
+    #         self.maze[i][self.cols_fixed - 1] = 1
+    #     for j in range(self.cols_fixed):
+    #         self.maze[0][j] = 1
+    #         self.maze[self.rows_fixed - 1][j] = 1
+
+    #     # Случайно добавить внутренние стены
+    #     for i in range(1, self.rows_fixed - 1):
+    #         for j in range(1, self.cols_fixed - 1):
+    #             if random.random() < 0.3:  # 30% шанс создать стену
+    #                 self.maze[i][j] = 1
+
+    #     self.print_maze()
     def print_maze(self) -> None:
         """Print the maze in console."""
         for i in range(self.cols_fixed // 2):
