@@ -1,8 +1,10 @@
-import argparse
 import copy
 import random
 from PIL import Image, ImageDraw
 from ipdb import set_trace as st
+import sys
+
+sys.setrecursionlimit(10**5)
 
 PATH_COLOR = (255, 255, 255)
 SOLVE_PATH_COLOR = (100, 100, 100)
@@ -375,93 +377,108 @@ class Maze:
         )
         return img
 
-if __name__ == "__main__":
-    """Entrypoint."""
+import click
 
-    parser = argparse.ArgumentParser(description="Maze Generator and Solver CLI")
-    parser.add_argument("--size", type=str, help="Maze size in the format 'rows,cols'")
-    parser.add_argument(
-        "--solve_indecies",
-        type=str,
-        help="Indices for solving in the format 'start_row,start_col,end_row,end_col'",
-    )
-    parser.add_argument("--import_file", type=str, help="Path to the import file")
-    parser.add_argument("--filename", type=str, help="Name of the output files")
-    parser.add_argument(
-        "--console_output", action="store_true", help="Output the maze in console"
-    )
-    parser.add_argument(
-        "--text_output", action="store_true", help="Output the maze in textfile"
-    )
-    parser.add_argument(
-        "--image_output", action="store_true", help="Output the maze in image"
-    )
+def validate_import_file(ctx, param, value):
+    if value:
+        if value.endswith('.png') or value.endswith('.txt'):
+            return value
+        raise click.BadParameter("Unsupported import file format. Use .png for images or .txt for text.")
 
-    args = parser.parse_args()
+@click.command()
+@click.option(
+    '--size',
+    type=str,
+    help="Maze size in the format 'rows,cols'."
+)
+@click.option(
+    '--solve-indecies',
+    type=str,
+    help="Indices for solving in the format 'start_row,start_col,end_row,end_col'."
+)
+@click.option(
+    '--import-file',
+    type=click.Path(exists=True),
+    callback=validate_import_file,
+    help="Path to the import file."
+)
+@click.option(
+    '--filename',
+    type=str,
+    help="Name of the output files."
+)
+@click.option(
+    '--console-output',
+    is_flag=True,
+    help="Output the maze in console."
+)
+@click.option(
+    '--text-output',
+    is_flag=True,
+    help="Output the maze in textfile."
+)
+@click.option(
+    '--image-output',
+    is_flag=True,
+    help="Output the maze in image."
+)
+def main(size, solve_indecies, import_file, filename, console_output, text_output, image_output):
+    """Entrypoint for Maze Generator and Solver CLI."""
     maze = None
 
-    # check size for generation
-    if args.size:
-        size_args = str(args.size)
-        size = size_args.split(",")
-        if len(size) != 2:
-            raise ValueError("Error: Provide dimensions in the format 'rows,cols'.")
+    if size:
+        size_parts = size.split(',')
+        if len(size_parts) != 2:
+            raise click.BadParameter("Provide dimensions in the format 'rows,cols'.")
 
-        rows, cols = map(int, size)
+        rows, cols = map(int, size_parts)
         maze = Maze(rows, cols)
         maze.generate_maze()
         maze.print_maze()
 
-    if args.import_file:
+    if import_file:
         maze = Maze()
+        if import_file.endswith('.png'):
+            maze.import_maze_from_image(import_file)
+        elif import_file.endswith('.txt'):
+            maze.import_maze_from_file(import_file)
 
-        if args.import_file.endswith(".png"):
-            maze.import_maze_from_image(args.import_file)
+    if maze is None:
+        raise click.UsageError("Provide maze size or import a maze for solving.")
 
-        elif args.import_file.endswith(".txt"):
-            maze.import_maze_from_file(args.import_file)
-
-        else:
-            raise ValueError(
-                "Error: Unsupported import file format. Use .png for images or .txt for text."
+    if solve_indecies:
+        solve_parts = solve_indecies.split(',')
+        if len(solve_parts) != 4:
+            raise click.BadParameter(
+                "Provide solving coordinates in the format 'start_row,start_col,end_row,end_col'."
             )
 
-    # if the maze is not created, subsequent functions are useless
-    if maze is None:
-        raise ValueError("Error: Provide maze size or import a maze for solving.")
-
-    # check indecies for solving
-    solve_args = str(args.solve_indecies)
-    solve_indecies = solve_args.split(",")
-
-    if len(solve_indecies) != 4:
-        print(
-            "Provide solving coordinates in the format 'start_row,start_col,end_row,end_col' to see solution"
-        )
-        if args.console_output:
-            maze.print_maze()
-
-        if args.filename:
-            if args.text_output:
-                maze.export_maze_to_file(args.filename + ".txt")
-
-            if args.image_output:
-                maze.create_maze_png(maze.maze).save(args.filename + ".png", "PNG")
-
-    else:
-        start = list(map(int, solve_indecies[:2]))
-        end = list(map(int, solve_indecies[2:]))
+        start = list(map(int, solve_parts[:2]))
+        end = list(map(int, solve_parts[2:]))
         maze.solve_maze(start, end)
 
-        if args.console_output:
+        if console_output:
             maze.print_maze()
-
             if maze.path:
                 maze.print_solved_maze()
 
-        if args.filename:
-            if args.text_output:
-                maze.export_maze_to_file(args.filename + ".txt")
+    if filename:
+        if text_output:
+            maze.export_maze_to_file(filename + '.txt')
 
-            if args.image_output:
-                maze.create_maze_png(maze.maze).save(args.filename + ".png", "PNG")
+        if image_output:
+            maze.create_maze_png(maze.maze).save(filename + '_output.png', 'PNG')
+
+    if not solve_indecies:
+        if console_output:
+            maze.print_maze()
+
+        if filename:
+            if text_output:
+                maze.export_maze_to_file(filename + '.txt')
+
+            if image_output:
+                maze.create_maze_png(maze.maze).save(filename + '.png', 'PNG')
+
+if __name__ == '__main__':
+    main()

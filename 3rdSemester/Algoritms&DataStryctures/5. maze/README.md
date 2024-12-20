@@ -4,10 +4,9 @@ Usage examples
 Поиск в глубину (DFS, Depth-first search)
 
 ```
-python.exe .\maze.py --import_file maze_test_1.txt --solve_indecies '1,5,11,11' --console_output --filename o
+python main.py --import-file maze_test_1.txt --solve-indecies="1,1,9,9" --image-output --filename out --console-output  
 ```
 
 ```
-python.exe .\maze.py --size '10,10' --image_output --filename in
-python.exe .\maze.py --size '10,10' --text_output --filename in
+python main.py --size '10,10' --solve-indecies="1,1,9,9" --image-output --filename out --console-output
 ```

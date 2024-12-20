@@ -1,6 +1,6 @@
 """Module for testing the Maze class """
 import unittest
-from maze import Maze
+from main import Maze
 
 
 class TestMaze(unittest.TestCase):
