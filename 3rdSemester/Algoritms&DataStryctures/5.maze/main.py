@@ -291,41 +291,37 @@ class Maze:
             self.rows_fixed = len(maze_data)
             self.cols_fixed = len(maze_data[0])
 
-
-
     def import_maze_from_image(self, filename) -> None:
         """Import a maze from an image file."""
-        wall_color = WALL_COLOR
-        path_color = PATH_COLOR
+        image = Image.open(filename)
+        width, height = image.size
+        maze_data = []
 
-        try:
-            image = Image.open(filename)
-            width, height = image.size
-            maze_data = []
+        for y in range(1, height, 20):
+            row = []
+            
 
-            for y in range(0, height, 21):
-                row = []
+            for x in range(1, width, 20):
+                pixel = image.getpixel((x, y))
 
-                for x in range(0, width, 21):
-                    pixel = image.getpixel((x, y))
+                if pixel == WALL_COLOR:
+                    row.append(1)
 
-                    if pixel == wall_color:
-                        row.append(1)
+                elif pixel == PATH_COLOR:
+                    row.append(0)
 
-                    elif pixel == path_color:
-                        row.append(0)
+                else:
+                    raise ValueError("Unknown pixel color in the image")
 
-                    else:
-                        raise ValueError("Unknown pixel color in the image")
+            maze_data.append(row)
 
-                maze_data.append(row)
+        self.maze = maze_data
+        self.rows_fixed = len(maze_data)
+        self.cols_fixed = len(maze_data[0])
+    
+        self.print_maze()
 
-            self.maze = maze_data
-            self.rows_fixed = len(maze_data)
-            self.cols_fixed = len(maze_data[0])
 
-        except FileNotFoundError:
-            print(f"File {filename} not found.")
 
     def export_maze_to_file(self) -> None:
         """Export the maze to a text file."""
@@ -395,7 +391,7 @@ def validate_import_file(ctx, param, value):
     help="Maze size in the format 'rows,cols'."
 )
 @click.option(
-    '--solve-indecies',
+    '--start-end',
     type=str,
     help="Indices for solving in the format 'start_row,start_col,end_row,end_col'."
 )
@@ -425,7 +421,7 @@ def validate_import_file(ctx, param, value):
     is_flag=True,
     help="Output the maze in image."
 )
-def main(size, solve_indecies, import_file, filename, console_output, text_output, image_output):
+def main(size, start_end, import_file, filename, console_output, text_output, image_output):
     """Entrypoint for Maze Generator and Solver CLI."""
     maze = None
 
@@ -449,8 +445,8 @@ def main(size, solve_indecies, import_file, filename, console_output, text_outpu
     if maze is None:
         raise click.UsageError("Provide maze size or import a maze for solving.")
 
-    if solve_indecies:
-        solve_parts = solve_indecies.split(',')
+    if start_end:
+        solve_parts = start_end.split(',')
         if len(solve_parts) != 4:
             raise click.BadParameter(
                 "Provide solving coordinates in the format 'start_row,start_col,end_row,end_col'."
@@ -472,7 +468,7 @@ def main(size, solve_indecies, import_file, filename, console_output, text_outpu
         if image_output:
             maze.create_maze_png(maze.maze).save(filename + '_output.png', 'PNG')
 
-    if not solve_indecies:
+    if not start_end:
         if console_output:
             maze.print_maze()
 
