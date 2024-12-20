@@ -1,6 +1,7 @@
 import copy
 import random
 from PIL import Image, ImageDraw
+import click
 from ipdb import set_trace as st
 import sys
 
@@ -31,7 +32,7 @@ def find_element_in_matrix(matrix: Matrix, target: int) -> list[int] | None:
 class Maze:
     """Maze handler for generating, solving, and manipulating mazes."""
 
-    def __init__(self, rows: int = 1, cols: int = 1) -> None:
+    def __init__(self, rows: int = 1, cols: int = 1, filename: str = "output") -> None:
         """Initialize the Maze object."""
         self.rows_fixed = rows * 2 + 1
         self.cols_fixed = cols * 2 + 1
@@ -40,6 +41,7 @@ class Maze:
         self.path = None
         self.generation_states = []
         self.solving_states = []
+        self.filename = filename
 
     def generate_maze(self) -> None:
         """Generate a maze and save generation states in generation_states variable."""
@@ -226,6 +228,7 @@ class Maze:
                     start_pos[0] + direction[0] * distance,
                     start_pos[1] + direction[1] * distance,
                 )
+
                 if (
                     maze[new_pos_wall[0]][new_pos_wall[1]] != 1
                     and maze[new_pos[0]][new_pos[1]][1] != 1
@@ -237,6 +240,7 @@ class Maze:
                         + [[new_pos[0], new_pos[1]]],
                     ]
                     ways.append(maze[new_pos[0]][new_pos[1]])
+
 
             try_move((0, 1), 2)
             try_move((-1, 0), 2)
@@ -281,15 +285,13 @@ class Maze:
 
     def import_maze_from_file(self, filename: str) -> None:
         """Import a maze from a text file."""
-        try:
-            with open(filename, "r", encoding="utf-8") as file:
-                maze_data = [list(map(int, line.strip())) for line in file.readlines()]
-                self.maze = maze_data
-                self.rows_fixed = len(maze_data)
-                self.cols_fixed = len(maze_data[0])
+        with open(filename, "r", encoding="utf-8") as file:
+            maze_data = [list(map(int, line.strip())) for line in file.readlines()]
+            self.maze = maze_data
+            self.rows_fixed = len(maze_data)
+            self.cols_fixed = len(maze_data[0])
 
-        except FileNotFoundError:
-            print(f"File {filename} not found.")
+
 
     def import_maze_from_image(self, filename) -> None:
         """Import a maze from an image file."""
@@ -325,9 +327,9 @@ class Maze:
         except FileNotFoundError:
             print(f"File {filename} not found.")
 
-    def export_maze_to_file(self, filename: str) -> None:
+    def export_maze_to_file(self) -> None:
         """Export the maze to a text file."""
-        with open(filename, "w", encoding="utf-8") as file:
+        with open(self.filename, "w", encoding="utf-8") as file:
             for row in self.maze:
                 file.write("".join(map(str, row)) + "\n")
 
@@ -340,6 +342,7 @@ class Maze:
         height = self.rows_fixed * cell_size
         img = Image.new("RGB", (width, height), PATH_COLOR)
         draw = ImageDraw.Draw(img)
+        maze = self.maze
 
         # Draw the maze walls
         for i in range(self.rows_fixed):
@@ -368,7 +371,7 @@ class Maze:
 
         # Save the animation as a GIF
         frames[0].save(
-            "result.gif",
+            f"{self.filename}.gif",
             save_all=True,
             append_images=frames[1:],  # Append frames after the first one
             optimize=True,
@@ -377,7 +380,7 @@ class Maze:
         )
         return img
 
-import click
+
 
 def validate_import_file(ctx, param, value):
     if value:
